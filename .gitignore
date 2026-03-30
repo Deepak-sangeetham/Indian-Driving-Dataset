@@ -1,3 +1,5 @@
 IDD_RESIZED/
 
-
+.env
+test.py
+query1.sql

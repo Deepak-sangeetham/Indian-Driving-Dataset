@@ -1,0 +1,16 @@
+# Web Framework & Server
+fastapi
+uvicorn[standard]==0.27.1
+
+# Data Processing
+opencv-python
+numpy
+
+# Database
+mysql-connector-python
+sqlalchemy
+
+# Security & Utils
+python-multipart
+pydantic
+python-dotenv==1.0.1
