@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
-
+import zipfile
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 import os
 
 app = FastAPI()
@@ -49,3 +51,31 @@ def search_images(
 def get_image(image_id: int, db: Session = Depends(get_db)):
     result = db.execute("SELECT * FROM idd_metadata WHERE id = :id", {"id": image_id}).fetchone()
     return dict(result._mapping) if result else {"error": "Not found"}
+
+# New Zip Download Route
+@app.get("/api/download-zip")
+def download_zip(min_road: float, max_road: float, name: str = "", db: Session = Depends(get_db)):
+    # 1. Get the list of filtered images (No limit here, we want all matches)
+    query_str = """
+        SELECT image_name FROM idd_metadata 
+        WHERE road_percentage BETWEEN :min AND :max
+        AND image_name LIKE :name
+    """
+    records = db.execute(text(query_str), {"min": min_road, "max": max_road, "name": f"%{name}%"}).fetchall()
+    
+    # 2. Create an in-memory zip file
+    io_buffer = BytesIO()
+    with zipfile.ZipFile(io_buffer, "w") as zip_file:
+        for row in records:
+            img_name = row[0]
+            # Adjust this path to your actual image folder
+            file_path = os.path.join(r"C:\Users\deepa\Documents\Projects\IndianDrivingDataset\IDD_RESIZED\image_archive", img_name)
+            if os.path.exists(file_path):
+                zip_file.write(file_path, arcname=img_name)
+
+    io_buffer.seek(0)
+    return StreamingResponse(
+        io_buffer, 
+        media_type="application/x-zip-compressed", 
+        headers={"Content-Disposition": f"attachment; filename=filtered_images.zip"}
+    )
