@@ -1,70 +1,101 @@
-# Getting Started with Create React App
+# IDD Dataset Explorer: Intelligent Road Analytics
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack data engineering and visualization platform designed to filter, explore, and extract specific scenes from the **Indian Driving Dataset (IDD)** based on semantic road coverage.
 
-## Available Scripts
+## 📌 Task
+The objective of this project is to automate the analysis of a large-scale driving dataset (approx. 7,000 images). Instead of manually searching through folders, the system allows researchers to:
+1.  **Quantify** the road area in every image using Computer Vision.
+2.  **Index** image metadata into a relational database for high-speed querying.
+3.  **Filter** and **Visualize** specific environmental conditions (e.g., "Show me only images with 20% to 30% road coverage").
+4.  **Bulk Extract** filtered data into a compressed ZIP format for model training.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🛠 Approach
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 1. Data Pipeline (ETL)
+* **Extraction:** Iterating through nearly 7,000 PNG images and their corresponding segmentation masks.
+* **Transformation:** Utilizing **OpenCV** to calculate the "Road Percentage" by analyzing pixel values in the mask files (identifying the specific class ID for roads).
+* **Loading:** Storing the image name, file path, and calculated road percentage into a **MySQL** database.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 2. Backend Architecture
+* Developed a high-performance API using **FastAPI**.
+* Implemented **SQLAlchemy** for secure, parameterized database communication.
+* Created a streaming endpoint to generate **dynamic ZIP files** in-memory, allowing for instant bulk downloads without cluttering server storage.
 
-### `npm test`
+### 3. Frontend Dashboard
+* Built a responsive UI using **ReactJS**.
+* Implemented "Input Cell" filtering to allow precise decimal-based searches.
+* Used a **Thumbnail Gallery** approach to preview results without overloading the browser's memory.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🔄 Workflow
+1.  **Indexing:** The `index_data.py` script processes the raw dataset and populates MySQL.
+2.  **API Hosting:** FastAPI connects to MySQL and serves image metadata and actual image files.
+3.  **User Interaction:** The user enters a `Min %` and `Max %` on the React Dashboard.
+4.  **Querying:** React fetches the top 10 matching results for a quick preview.
+5.  **Extraction:** The user clicks "Download Filtered ZIP" to trigger a backend process that zips **all** images in that specific range for offline use.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 🚀 Setup & Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Prerequisites
+* **Python 3.10+**
+* **Node.js & npm**
+* **MySQL Server**
 
-### `npm run eject`
+### 1. Database Setup
+Create a database named `idd_project` and run the following SQL:
+```sql
+CREATE TABLE idd_metadata (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    image_name VARCHAR(255),
+    road_percentage FLOAT,
+    share_token VARCHAR(50)
+);
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 2. Backend Setup (System-wide)
+Since no virtual environment is used, install the dependencies globally:
+```bash
+pip install fastapi uvicorn sqlalchemy mysql-connector-python python-dotenv opencv-python
+```
+**Configure your `.env` file in the `/backend` folder:**
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password_with_@_encoded
+DB_NAME=idd_project
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 3. Frontend Setup
+Navigate to the frontend folder and install dependencies:
+```bash
+cd frontend
+npm install
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🖥️ Running the Project
 
-## Learn More
+1.  **Populate the Database:**
+    ```bash
+    python index_data.py
+    ```
+2.  **Start the Backend:**
+    ```bash
+    cd backend
+    uvicorn main:app --reload
+    ```
+3.  **Start the Frontend:**
+    ```bash
+    cd frontend
+    npm start
+    ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## ⚠️ Troubleshooting
+* **Port Hanging:** If the server hangs, run `taskkill /F /IM python.exe /T` in CMD to clear zombie processes.
+* **CORS Error:** Ensure the `CORSMiddleware` in `main.py` is configured to allow `http://localhost:3000`.
